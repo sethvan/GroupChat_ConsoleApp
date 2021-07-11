@@ -6,9 +6,11 @@
  servers, clients or encryption. I will leave that for some other time.
 
    Unless there are still some major bugs I haven't yet found, if you run more than one 
-session, the terminals should be able to have a group chat between them.
+session, the terminals should be able to have a group chat between them. 
+I amusing GCC 10.2.0 but not sure what the minimum necessary would be to run this.
+ 
 
-compile command: g++ -g -std=c++20 main.cpp GroupChat.cpp -fcoroutines -pthread
+compile command I use is: g++ -g -std=c++20 main.cpp GroupChat.cpp -fcoroutines -pthread
 
 
 
