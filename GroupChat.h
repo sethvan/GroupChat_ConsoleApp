@@ -1,5 +1,5 @@
-#ifndef CHATAPP_H_
-#define CHATAPP_H_
+#ifndef GROUPCHAT_H_
+#define GROUPCHAT_H_
 
 #include <iostream>
 #include <vector>
