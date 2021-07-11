@@ -4,28 +4,25 @@
 
 void GroupChat::run()
 {
-    readUserList();
-    int choice = 0;
+    char choice {'0'};
     while(true)
     {
         printf("1.)Log in\n2.)Create Account\n3.)Exit\n:");
         std::cin >> choice;
-        if(choice < 1 || choice > 3)
-           printf("Invalid choice!\n\n");
-        else
-           break;
-    }
-
-    switch(choice)
-    {
-        case 1 :
-            logIn();
-            break;
-        case 2 :
-            createAccount();
-            break;
-        case 3 :
-            exit(0);    
+        switch(choice)
+       {
+           case '1' :
+               logIn();
+               break;
+           case '2' :
+               createAccount();
+               break;
+           case '3' :
+               exit(0);
+           default :
+               while(getchar() != '\n');
+               printf("\nInvalid choice!\n\n");    
+        }
     }
 }
 
@@ -35,8 +32,10 @@ void GroupChat::readUserList()
     std::ifstream inFile("Users.txt");
     if(inFile)
     {
+        users.erase(users.begin(), users.end());        
         int loops{};
-        std::string _name{}, _password{};
+        std::string _name{}, _password{}, _online_str{};
+        bool _online {};
 
         inFile >> loops;
         inFile.ignore(120,'\n');
@@ -45,7 +44,13 @@ void GroupChat::readUserList()
         {
             std::getline(inFile, _name);
             std::getline(inFile, _password);
-            users.emplace_back(_name, _password);
+            std::getline(inFile, _online_str);
+            if(_online_str == "false")
+                _online = false;
+            else
+                _online = true;                
+
+            users.emplace_back(_name, _password, _online);
         }        
         inFile.close();
     }
@@ -56,8 +61,9 @@ void GroupChat::readUserList()
 
 void GroupChat::updateUserList()
 {
-    users.erase(users.begin(), users.end());
     readUserList();
+    (std::find(users.begin(), users.end(), user))->online = user.online;
+        
     std::lock_guard<std::mutex> lock(ul);
     std::ofstream outFile("Users.txt");
     assert(outFile);
@@ -66,6 +72,10 @@ void GroupChat::updateUserList()
     {
         outFile << users.at(i).name << std::endl;
         outFile << users.at(i).password << std::endl;
+        if(users.at(i).online == true)
+            outFile << "true" << std::endl;
+        else
+            outFile << "false" << std::endl;
     }
     outFile.close();
 }
@@ -78,6 +88,8 @@ void GroupChat::createAccount()
 
     printf("Please enter a username: ");
     std::cin >> _name;
+    
+    readUserList();
 
     auto it = std::find(users.begin(), users.end(), User(_name));
     if(it != users.end())
@@ -91,7 +103,9 @@ void GroupChat::createAccount()
        std::cin >> _password;
        user.name = _name;
        user.password = _password;
+       user.online = true;
        users.emplace_back(user);
+       updateUserList();
        openSession();
     }   
 }
@@ -104,36 +118,49 @@ void GroupChat::logIn()
 
     printf("Please enter your username: ");
     std::cin >> _name;
+    
+    readUserList();
 
     auto it = std::find(users.begin(), users.end(), User(_name));
     if(it != users.end())
     {
-        int wrongGuesses = 0;
-        do
+        if(it->online == true)
         {
-            printf("Please enter your password: ");
-            std::cin >> _password;
-
-            if(it->password == _password)
-            {   
-                user.name = _name;
-                openSession();
-            }
-            else
-               printf("Password is incorrect!\n");
-            
-            if(++wrongGuesses == 3)
+            printf("\nThat User is already currently in an open session!\n\n");
+            run();
+        }
+        else
+        {
+            int wrongGuesses = 0;
+            do
             {
-                printf("Three incorrect guesses! Returning to main menu.\n\n");
-                run();
-            }
-        }while(it->password != _password);
+                printf("Please enter your password: ");
+                std::cin >> _password;
+
+                if(it->password == _password)
+                {   
+                    user.name = _name;
+                    user.online = true;
+                    updateUserList();
+                    openSession();
+                }
+                else
+                   printf("Password is incorrect!\n");
+            
+                if(++wrongGuesses == 3)
+                {
+                    printf("Three incorrect guesses! Returning to main menu.\n\n");
+                    run();
+                }
+            }while(it->password != _password);
+        }
     }
     else
     {
         printf("\nUsername does not exist! Please create an account.\n");
         createAccount();
     }
+    
 }
 
 void GroupChat::readChat()
@@ -151,13 +178,14 @@ void GroupChat::readChat()
             auto index = line.find(user.name);
             if(count > lineCount)
             {
-                if(index != 0)
+                if(index != 0 || firstRead)
                 {
                     std::cout << line << std::endl;
                 }
                 lineCount = count;
             }
         }
+        firstRead = false;
         inFile.close();
     }
 }
@@ -169,47 +197,49 @@ void GroupChat::writeChat(std::string& str, bool userName)
      outFile.open("groupChat.txt", std::ios_base::app);
      if(userName)
      {
-         outFile << user.name << ": " << str << std::endl;
+         outFile << user.name << ": " << str << "\n" << std::endl;
      }
      else
-         outFile << str << std::endl;
+         outFile << str << "\n" << std::endl;
         
 }
 
 void GroupChat::openSession()
 {
-    std::cout << "You are now enterring the group chat.\n" << 
-                 " Please type the tilde '~' and then the 'enter' key when you wish to leave" << std::endl;
-
     std::string str{" has entered the chat..."};
 
     auto displayChat = [&]{
         while(str != "~")
         {
             readChat();
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     };
     std::thread displayThread(displayChat);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    
     std::string intro = "User ";
+    std::string outro = intro + user.name + " has left the chat room";
     intro = intro + user.name + str;
-    std::string outro = user.name + " has left the chat room";
 
     writeChat(intro, false);
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::cout << "\n>>>You are now enterring the group chat.\n" << 
+                 " Please type the tilde '~' and then the 'enter' key when you wish to leave<<<\n" << std::endl;
  
     while(true)
     {
         std::getline(std::cin >> std::ws, str);
         if(str == "~")
         {
+            user.online = false;
             displayThread.join();
             writeChat(outro, false);
             updateUserList(); 
             exit(0);
         }
         writeChat(str, true);
-    }
-        
+    }     
 }

@@ -8,17 +8,26 @@
 #include <algorithm>
 #include <mutex>
 #include <fstream>
-#include "User.h"
+
 
 class GroupChat
 {
-    private:
+    typedef struct User
+{
+    std::string name = "";
+    std::string password = "";
+    bool online = false;
+    bool operator==(const User& rhs){return name == rhs.name;}
+}User;
+
+private:
     std::vector<User> users;
     User user;
     std::mutex ul, gc;
     int lineCount {0};
+    bool firstRead = true;
 
-    public:
+public:
     void run();
     void readUserList();
     void updateUserList();
