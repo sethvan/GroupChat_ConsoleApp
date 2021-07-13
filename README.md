@@ -7,7 +7,7 @@
 
    Unless there are still some major bugs I haven't yet found, if you run more than one 
 session, the terminals should be able to have a group chat between them. 
-I amusing GCC 10.2.0 but not sure what the minimum necessary would be to run this.
+I am using GCC 10.2.0 but not sure what the minimum necessary would be to run this.
  
 
 compile command I use is: g++ -g -std=c++20 main.cpp GroupChat.cpp -fcoroutines -pthread
