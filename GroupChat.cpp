@@ -196,13 +196,16 @@ void GroupChat::writeChat(std::string &str, bool userName)
 {
     std::scoped_lock lock(groupChat);
     std::ofstream outFile;
-    outFile.open("groupChat.txt", std::ios_base::app);
-    if (userName)
+    if (outFile)
     {
-        outFile << user << ": " << str << "\n\n";
+        outFile.open("groupChat.txt", std::ios_base::app);
+        if (userName)
+        {
+            outFile << user << ": " << str << "\n\n";
+        }
+        else
+            outFile << str << "\n\n";
     }
-    else
-        outFile << str << "\n\n";
 }
 
 void GroupChat::openSession()
