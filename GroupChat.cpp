@@ -10,15 +10,14 @@ using namespace std::literals::chrono_literals;
 
 void GroupChat::run()
 {
+    lineCount = 0;
+    firstRead = true;
+    _online = true;
     mainMenu();
 }
 
 void GroupChat::mainMenu()
 {
-    lineCount = 0;
-    firstRead = true;
-    _online = true;
-
     while (true)
     {
         std::cout << "1.)Log in\n2.)Create Account\n3.)Exit\n:";
