@@ -15,7 +15,7 @@ private:
         bool online;
     };
 
-    std::map<std::string, UserData> users; // Key will be user's names
+    std::map<std::string, UserData> users; // Key will be users' names
     std::string user;
     std::string _password;
     std::atomic<bool> _online;
