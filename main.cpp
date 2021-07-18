@@ -4,6 +4,4 @@ int main()
 {
     GroupChat app{};
     app.run();
-    
 }
-

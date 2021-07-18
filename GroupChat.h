@@ -15,7 +15,7 @@ private:
         bool online;
     };
 
-    std::map<std::string, UserData> users;
+    std::map<std::string, UserData> users; // Key will be user's names
     std::string user;
     std::string _password;
     std::atomic<bool> _online;
@@ -23,12 +23,13 @@ private:
     int lineCount;
     bool firstRead;
 
-    void readUserList();
-    void updateUserList();
+    void mainMenu();
+    void readUserList();   // Updates the map "users" from userList.txt so this process is aprised
+    void updateUserList(); // Updates userList.txt so that it reflects the "user" status from this process
     void createAccount();
     void logIn();
     void readChat();
-    void writeChat(std::string &str, bool userName);
+    void writeChat(std::string &str, bool includeUserName);
     void openSession();
 
 public:
