@@ -113,6 +113,12 @@ void GroupChat::createAccount()
     std::cin >> name;
 
     readUserList();
+    if (name.find(':'))
+    {
+        std::cout << "Username cannot contain \':\' character \n";
+        mainMenu();
+    }
+
     if (users.contains(name))
     {
         std::cout << "Username already in use!\n";
@@ -182,15 +188,16 @@ void GroupChat::readChat()
     {
         int count = 0;
         std::string line;
+        std::string screenName = user + ":";
 
         while (std::getline(inFile, line))
         {
             if (++count <= lineCount)
                 continue;
 
-            if (line.find(user) != 0 || firstRead) //Displays previous chat history(listing user's name in their comments)..
-                std::cout << line << "\n";         //..and does not display user's current comments as they will already be displayed..
-                                                   //..via their input to app in terminal
+            if (line.find(screenName) != 0 || firstRead) //Displays previous chat history(listing user's name in their comments)..
+                std::cout << line << "\n";               //..and does not display user's current comments as they will already be displayed..
+                                                         //..via their input to app in terminal
             lineCount = count;
         }
         firstRead = false;
