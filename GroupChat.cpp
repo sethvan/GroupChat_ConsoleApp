@@ -137,7 +137,6 @@ void GroupChat::createAccount()
     std::string name;
     std::cin >> name;
 
-    readUserList();
     for (auto c : name)
     {
         if (c == ':')
@@ -148,6 +147,7 @@ void GroupChat::createAccount()
         }
     }
 
+    readUserList();
     if (users.contains(name))
     {
         std::cout << "Username already in use!\n";
