@@ -2,9 +2,11 @@
 #define GROUPCHAT_H_
 
 #include <string>
-#include <mutex>
 #include <map>
 #include <atomic>
+#include <pthread.h>
+#include <semaphore.h>
+#include <fcntl.h>
 
 class GroupChat
 {
@@ -19,8 +21,11 @@ private:
     std::string user;
     std::string _password;
     std::atomic<bool> _online;
-    std::mutex userList, groupChat;
+
+    sem_t *userSem;
+    sem_t *chatSem;
     int lineCount;
+    bool othersOnline;
     bool firstRead;
 
     void mainMenu();
@@ -29,7 +34,7 @@ private:
     void createAccount();
     void logIn();
     void readChat();
-    void writeChat(std::string &str, bool includeUserName);
+    void writeChat(const std::string &str, bool includeUserName);
     void openSession();
 
 public:

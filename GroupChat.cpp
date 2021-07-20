@@ -13,6 +13,24 @@ void GroupChat::run()
     lineCount = 0;
     firstRead = true;
     _online = true;
+    readUserList();
+
+    if (!othersOnline)
+    {
+        sem_unlink("userListSem");
+        sem_unlink("groupChatSem");
+    }
+    if ((userSem = sem_open("userListSem", othersOnline ? 0 : O_CREAT, 0644, 1)) == SEM_FAILED)
+    {
+        std::cout << "semaphore initilization failed";
+        exit(1);
+    }
+    if ((chatSem = sem_open("groupChatSem", othersOnline ? 0 : O_CREAT, 0644, 1)) == SEM_FAILED)
+    {
+        std::cout << "semaphore initilization failed";
+        exit(1);
+    }
+
     mainMenu();
 }
 
@@ -42,7 +60,8 @@ void GroupChat::mainMenu()
 
 void GroupChat::readUserList()
 {
-    std::scoped_lock lock(userList);
+    if (!firstRead && users.size())
+        sem_wait(userSem);
 
     std::ifstream inFile("Users.txt");
     if (!inFile)
@@ -53,6 +72,7 @@ void GroupChat::readUserList()
     inFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     try
     {
+        othersOnline = false;
         int loops;
         inFile >> loops;
         inFile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -65,18 +85,22 @@ void GroupChat::readUserList()
             std::getline(inFile, online_str);
 
             users[std::move(name)] = UserData{std::move(password), online_str != "false"};
+            if (online_str == "true")
+                othersOnline = true;
         }
     }
     catch (const std::ifstream::failure &e)
     {
         std::cerr << "Exception opening/reading/closing \"Users.txt\"\n";
     }
+    if (!firstRead && users.size())
+        sem_post(userSem);
 }
 
 void GroupChat::updateUserList()
 {
     readUserList();
-    std::scoped_lock lock(userList);
+    sem_wait(userSem);
 
     std::ofstream outFile("Users.txt");
     outFile.exceptions(std::ofstream::failbit | std::ofstream::badbit);
@@ -103,6 +127,7 @@ void GroupChat::updateUserList()
     {
         std::cerr << "Exception opening/writing/appending/closing \"Users.txt\"\n";
     }
+    sem_post(userSem);
 }
 
 void GroupChat::createAccount()
@@ -113,10 +138,14 @@ void GroupChat::createAccount()
     std::cin >> name;
 
     readUserList();
-    if (name.find(':'))
+    for (auto c : name)
     {
-        std::cout << "Username cannot contain \':\' character \n";
-        mainMenu();
+        if (c == ':')
+        {
+            std::cout << user << "\n";
+            std::cout << "Username cannot contain \':\' character \n";
+            mainMenu();
+        }
     }
 
     if (users.contains(name))
@@ -177,7 +206,7 @@ void GroupChat::logIn()
 
 void GroupChat::readChat()
 {
-    std::scoped_lock lock(groupChat);
+    sem_wait(chatSem);
 
     std::ifstream inFile("groupChat.txt");
     if (!inFile)
@@ -206,11 +235,12 @@ void GroupChat::readChat()
     {
         std::cerr << "Exception opening/reading/closing \"groupChat.txt\"\n";
     }
+    sem_post(chatSem);
 }
 
-void GroupChat::writeChat(std::string &str, bool includeUserName)
+void GroupChat::writeChat(const std::string &str, bool includeUserName)
 {
-    std::scoped_lock lock(groupChat);
+    sem_wait(chatSem);
 
     std::ofstream outFile;
     outFile.exceptions(std::ofstream::failbit | std::ofstream::badbit);
@@ -226,26 +256,27 @@ void GroupChat::writeChat(std::string &str, bool includeUserName)
     {
         std::cerr << "Exception opening/writing/closing \"groupChat.txt\"\n";
     }
+    sem_post(chatSem);
 }
 
 void GroupChat::openSession()
 {
-    std::string intro = "User ";
-    std::string outro = intro + user + " has left the chat...";
-    intro = intro + user + " has entered the chat...";
+    const std::string prefix = "User ";
+    const std::string outro = prefix + user + " has left the chat...";
+    const std::string intro = prefix + user + " has entered the chat...";
 
     auto displayChat = [&]
     {
         while (_online)
         {
             readChat();
-            std::this_thread::sleep_for(.5s);
+            std::this_thread::sleep_for(.1s);
         }
     };
     std::thread displayThread(displayChat);
 
     writeChat(intro, false);
-    std::this_thread::sleep_for(1s);
+    std::this_thread::sleep_for(.5s);
     std::cout << ">>>You are now enterring the group chat.\n"
               << " Please type the tilde '~' and then the 'enter' key when you wish to leave<<<\n"
               << std::endl;
@@ -259,6 +290,13 @@ void GroupChat::openSession()
             _online = false;
             writeChat(outro, false);
             updateUserList();
+
+            if (!othersOnline)
+            {
+                sem_close(userSem);
+                sem_close(chatSem);
+            }
+
             displayThread.join();
             exit(0);
         }
