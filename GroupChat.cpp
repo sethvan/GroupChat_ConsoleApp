@@ -141,7 +141,6 @@ void GroupChat::createAccount()
     {
         if (c == ':')
         {
-            std::cout << user << "\n";
             std::cout << "Username cannot contain \':\' character \n";
             mainMenu();
         }
@@ -278,8 +277,7 @@ void GroupChat::openSession()
     writeChat(intro, false);
     std::this_thread::sleep_for(.5s);
     std::cout << ">>>You are now enterring the group chat.\n"
-              << " Please type the tilde '~' and then the 'enter' key when you wish to leave<<<\n"
-              << std::endl;
+              << " Please type the tilde '~' and then the 'enter' key when you wish to leave<<<\n";
 
     std::string str;
     while (true)
