@@ -1,5 +1,4 @@
 #include <thread>
-#include <algorithm>
 #include <iostream>
 #include "GroupChat.h"
 #include <limits>
